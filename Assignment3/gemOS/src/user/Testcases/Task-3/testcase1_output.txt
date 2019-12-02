@@ -1,0 +1,12 @@
+Main number:10
+Child pid:2
+Parent pid:1
+Child number:10
+ticks = 53 swapper_invocations = 0 context_switches = 41 lw_context_switches = 0
+syscalls = 9 page_faults = 3 used_memory = 0 num_processes = 2
+copy-on-write faults = 1 allocated user region pages = 16
+Parent number:100
+ticks = 56 swapper_invocations = 0 context_switches = 43 lw_context_switches = 0
+syscalls = 12 page_faults = 3 used_memory = 0 num_processes = 1
+copy-on-write faults = 1 allocated user region pages = 16
+

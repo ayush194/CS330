@@ -1,0 +1,4 @@
+This should be printed twice
+Child pid:2
+This should be printed twice
+Parent pid:1

@@ -1,0 +1,586 @@
+% --------------------------------------------------------------
+% This is all preamble stuff that you don't have to worry about.
+% Head down to where it says "Start here"
+% --------------------------------------------------------------
+ 
+\documentclass[12pt]{article}
+ 
+\usepackage[margin=1in]{geometry} 
+\usepackage{graphicx}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{hyperref}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+ 
+\newenvironment{theorem}[2][Theorem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{lemma}[2][Lemma]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{exercise}[2][Exercise]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{problem}[2][Problem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{question}[2][Question]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{corollary}[2][Corollary]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
+ 
+\begin{document}
+
+ 
+% --------------------------------------------------------------
+%                         Start here
+% --------------------------------------------------------------
+ 
+\title{Assignment 2}
+\author{CS330: Operating Systems}
+\date{}
+
+\maketitle
+
+\section{Introduction}
+
+As part of this assignment,
+you will be implementing system calls in a teaching OS (gemOS), some of which you became familiar during Assignment-1. 
+%
+We will be using a minimal OS called gemOS to implement these system calls and provide system call APIs to the user space. 
+%
+The gemOS source can be found in the {\tt src} directory. This source provides the OS source code and the user space 
+process (i.e., {\tt init} process) code (in {\tt src/user} directory).
+
+gemOS is a teaching operating system. Typically OS boots on a hardware (bare metal or virtual). 
+We will be using gem5 (\href{http://gem5.org/Main\_Page}{http://gem5.org/Main\_Page}), an open source architectural simulator 
+to boot \textbf{gemOS}. An architectural simulator simulates the hardware in software. 
+%
+In other words, all the hardware functionalities are implemented in software using some programming language. 
+%
+For example, Gem5 simulator implements architectural elements for different architectures like
+ARM, X86, MIPS etc.
+%
+Advantages of using software simulators for OS development are,
+\begin{itemize}
+\item Internal hardware state and operations at different components (e.g., decoder, cache etc.) can be
+profiled to better understand the hardware-software interfacing.
+\item Hardware can be modified for several purposes---make it simpler, understand implications of 
+hardware changes on software design etc.
+\item Bugs during OS development can be better understood by debugging both hardware code and the OS code.     
+\end{itemize} 
+%
+The getting started guide helps you to setup Gem5 and execute \texttt{gemOS} on it. 
+You can refer to \href{http://learning.gem5.org/book/index.html}{this} online tutorial to know more about gem5.\\
+
+
+You need to setup gem5 by following the instructions (Step-0) mentioned in Section~\ref{sec:s0}. 
+We suggest to complete \textbf{Step-0} immediately to have a working gem5 simulator to start with 
+the assignment. \textbf{Step-0} also helps you to understand how to boot \textbf{gemOS} binary in gem5. 
+You can build the gemOS source provided in the {\tt src} directory to test the working. 
+
+The assignment is divided into five tasks. The implementation of system calls for each task should be POSIX compliant. 
+Which means, you need to read the man pages of each of corresponding system calls to know about their exact behavior. 
+Testing procedure and submission guidelines are mentioned at the end of the document. 
+
+\section{Step-0: Getting Ready}
+\label{sec:s0}
+
+This section explains the setup procedure of gem5. Further, it explains the process to build and execute gemOS 
+on gem5 platform and access the terminal to see the messages printed by the gemOS.
+
+\subsection{Preparing Gem5 simulator}
+\subsubsection*{System pre-requisites}
+\begin{itemize}
+    \item Git
+    \item gcc 4.8+
+    \item python 2.7+
+    \item SCons
+    \item protobuf 2.1+
+\end{itemize}
+\begin{flushleft}
+On Ubuntu install the packages by executing the following command. 
+
+\vspace{0.25cm}
+\noindent
+\texttt{\$ sudo apt-get install build-essential git m4 scons zlib1g zlib1g-dev libprotobuf-dev protobuf-compiler libprotoc-dev  libgoogle-perftools-dev python-dev python automake}
+\end{flushleft} 
+\vspace{5mm}
+\subsubsection*{Gem5 installation} 
+Clone the gem5 repository from \url{https://gem5.googlesource.com/public/gem5}.
+
+\vspace{0.25cm}
+\noindent
+\texttt{\$ git clone https://gem5.googlesource.com/public/gem5}
+
+\vspace{0.25cm}
+\noindent
+Change the current directory to \texttt{gem5} and build it with scons:
+
+\vspace{0.25cm}
+\noindent
+\texttt{\$ cd gem5 \\
+ \$ scons build/X86/gem5.opt -j9}
+
+\vspace{0.25cm}
+\noindent
+In place of 9 in [-j9], you can use a number equal to available cores in your system plus one. 
+For example, if your system have 4 cores, then substitute -j9 with -j5. 
+For first time it will take around 10 to 30 minutes depending on your system configuration. 
+After a successful Gem5 build, test it using the following command,
+
+
+\vspace{0.25cm}
+\noindent
+\texttt{\$ \small{build/X86/gem5.opt configs/example/se.py --cmd=tests/test-progs/hello/bin/x86/linux/hello}}
+
+\vspace{0.25cm}
+\noindent
+The output should be as follows,
+\begin{footnotesize}
+\begin{verbatim}
+ gem5 Simulator System.  http://gem5.org
+ gem5 is copyrighted software; use the --copyright option for details.
+ gem5 compiled Aug  4 2018 11:00:44
+ gem5 started Aug  4 2018 17:15:06
+ gem5 executing on BM1AF-BP1AF-BM6AF, pid 8965
+ command line: build/X86/gem5.opt configs/example/se.py \
+               --cmd=tests/test-progs/hello/bin/x86/linux/hello
+ /home/user/workspace/gem5/configs/common/CacheConfig.py:50: SyntaxWarning: import * only \ 
+               allowed at module level def config_cache(options, system):
+ Global frequency set at 1000000000000 ticks per second
+ warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (512 Mbytes)
+ 0: system.remote_gdb: listening for remote gdb on port 7000
+ **** REAL SIMULATION ****
+ info: Entering event queue @ 0. Starting simulation.....
+ Hello world!
+ Exiting @ tick 5941500 because exiting with last active thread context 
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{Booting gemOS using Gem5} 
+Gem5 execute in two modes---system call emulation (SE) mode and full system (FS) simulation mode.
+%
+The example shown in the previous section, was a SE mode simulation of Gem5 to execute an application.
+%
+As we want to execute an OS, Gem5 should be executed in FS mode. 
+%
+There are some initial setup to do before we can execute \texttt{gemOS} using Gem5 FS mode.
+%
+To run OS in full-system mode, where we are required to simulate the hardware in detail, 
+we need to provide the following files,
+\begin{itemize}
+    \item \texttt{gemOS.kernel}: OS binary built from the \texttt{gemOS} source. 
+    \item \texttt{gemOS.img}: root disk image
+    \item \texttt{swap.img}: swap disk image
+\end{itemize}
+
+Gem5 is required to be properly configured to execute the \texttt{gemOS} kernel. 
+The configuration requires changing
+some existing configuration files (in gem5 directory) as follows,
+\begin{itemize}
+   \item Edit the \texttt{configs/common/FSConfig.py} file to modify the \texttt{makeX86System} function
+         where the value of \texttt{disk2.childImage} is modified to \texttt{(disk('swap.img'))}.
+   \item Edit the \texttt{configs/common/Benchmarks.py} file to update it as follows, 
+         \begin{verbatim}
+             elif buildEnv['TARGET_ISA'] == 'x86':
+                   return env.get('LINUX_IMAGE', disk('gemOS.img'))
+         \end{verbatim}
+\end{itemize}
+\noindent
+Create a directory named \texttt{gemos} in \texttt{gem5} directory and populate it as follows,
+
+\vspace{0.25cm}
+\noindent
+\texttt{/home/user/gem5\$ mkdir gemos} \\
+\texttt{/home/user/gem5\$ cd gemos} \\
+\texttt{/home/user/gem5/gemos\$ mkdir disks; mkdir binaries} \\
+\texttt{/home/user/gem5/gemos\$ dd if=/dev/zero of=disks/gemOS.img bs=1M count=128} \\
+\texttt{/home/user/gem5/gemos\$ dd if=/dev/zero of=disks/swap.img bs=1M count=32} \\
+
+
+
+%
+For the time being, you can use \texttt{gemOS.kernel} provided with the assignment (can be found in {\tt src} directory). 
+Copy the \texttt{gemOS.kernel} to {\tt gemos/binaries} directory.\\
+%
+We need to set the \texttt{M5\_PATH} environment variable to the \texttt{gemos} directory path as follows,
+
+
+\vspace{0.25cm}
+\noindent
+\texttt{/home/user/gem5\$ export M5\_PATH=/home/user/gem5/gemos}
+ 
+\vspace{0.25cm}
+\noindent
+Now, we are ready to boot GemOS.
+
+\vspace{0.25cm}
+\noindent
+\texttt{gem5\$ build/X86/gem5.opt configs/example/fs.py} \\ {\tt --kernel=/home/user/gem5/gemos/binaries/gemOS.kernel --mem-size=2048MB}
+
+\vspace{0.25cm}
+\noindent
+gem5 output will look as follows,
+\begin{scriptsize}
+\begin{verbatim}
+gem5 Simulator System.  http://gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 compiled Aug 21 2019 23:45:13
+gem5 started Aug 22 2019 10:45:01
+gem5 executing on kparun-BM1AF-BP1AF-BM6AF, pid 28942
+command line: build/X86/gem5.opt configs/example/fs.py --kernel=/home/kparun/gem5/gemos/binaries/gemOS.kernel --mem-size=2048MB
+
+Global frequency set at 1000000000000 ticks per second
+warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (512 Mbytes)
+info: kernel located at: /home/kparun/gem5/gemos/binaries/gemOS.kernel
+system.pc.com_1.device: Listening for connections on port 3456
+      0: rtc: Real-time clock set to Sun Jan  1 00:00:00 2012
+0: system.remote_gdb: listening for remote gdb on port 7000
+warn: Reading current count from inactive timer.
+**** REAL SIMULATION ****
+info: Entering event queue @ 0.  Starting simulation...
+warn: Don't know what interrupt to clear for console.
+\end{verbatim} 
+\end{scriptsize}
+\noindent
+Execute the following command in another terminal window to access the \texttt{gemOS} console 
+
+\vspace{0.25cm}
+\noindent
+\texttt{/home/user\$ telnet localhost 3456}
+
+
+\vspace{0.25cm}
+\noindent
+At this point, you should be able to see the \texttt{gemOS} shell. 
+
+\subsection{How to build gemOS}
+
+To build \textbf{gemOS.kernel}, you need to run \textbf{make} inside \textbf{src} folder. 
+After that you need to copy \textbf{gemOS.kernel} binary to \texttt{gemos/binaries} directory. 
+This step is necessary every time you build the gemOS and want to test it.
+After copying \texttt{gemOS.kernel}, run\\ \newline
+
+\vspace{0.25cm}
+\noindent
+\texttt{gem5\$ build/X86/gem5.opt configs/example/fs.py} \\ {\tt --kernel=/home/user/gem5/gemos/binaries/gemOS.kernel --mem-size=2048MB}
+\vspace{0.25cm}
+
+\noindent
+Open a terminal window as before and access the console using the following command, \\
+
+\noindent
+\texttt{/home/user\$ telnet localhost 3456}.
+
+\subsection{How to test your Implementation}
+
+In the \textbf{GemOS\#} terminal (accessed using the {\tt telnet} command as shown above),
+you can type \textbf{init} to execute the user space process i.e, {\tt init}. 
+The user space code is available in {\tt src/user/init.c}. Three user space files are used to implement the
+user space logic. They are
+\begin{itemize}
+    \item[{\tt init.c}:] Implements the first user space process which can invoke {\tt fork()} to create more processes. Note that, there
+    is no {\tt exec} system call yet in the version provided to you. For changing the user space logic, you are required to modify {\em only} 
+    {\tt init.c}.
+\item[{\tt lib.c}:] Implements system call wrappers and provide different user space libraries (e.g., {\tt printf}). 
+    Note that you {\em do not} modify this file.
+\item[{\tt lib.c}:] Provides declarations of macros and functions.
+    Note that you {\em do not} modify this file.
+\end{itemize}
+
+You need to write your test cases in \textbf{init.c} to validate your implementation. The sample test-cases (in {\tt src/user/test\_cases/testcase*.c})
+can be copied into {\tt init.c} to make use of them. If your implementation is correct, the output of executing test cases should match the 
+expected output provided in {\tt src/user/test\_cases/testcase*.output}. 
+The user and kernel code are compiled into a single binary file, i.e., \textbf{gemOS.kernel} when built using {\tt make} from 
+the {\tt src} directory.
+
+\section*{The real assignment}
+
+The process control block (PCB) is implemented using a structure named {\tt exec\_context} defined in {\tt src/include/context.h}.
+One of the important member of {\tt exec\_context} for this assignment is an array of {\tt struct file} (declared in {\tt include/file.h}) 
+named as {\tt files}. This is the file descriptor table where the index of the array (in {\tt files}) corresponds to the file descriptor. For example,
+{\tt files[0]} represents the file descriptor 0 and points to the file object for the standard input (STDIN).
+%
+You are required to manipulate the {\tt files} structure and provide appropriate logic for the 
+file object to implements the assignment. The template code provides detailed documentation for 
+understanding the tasks further. Note that, there are several function pointers in {\tt struct file}
+which can be implemented to provide file system functionalities as we discuss further.
+
+\section{Task-1: Basic file operations (20 Marks)}
+
+\subsection*{List of Syscalls to Implement}
+\begin{itemize}
+    \item {\tt int open(const char *pathname, int flags,int mode)}
+    \item {\tt int read(int fd, void *buf, int count)}
+    \item     {\tt int write(int fd, const void *buf,int count)}
+\end{itemize}
+
+
+\subsection{open}
+To implement {\tt open} system call, you are required to provide implementation for the template function  
+{\tt do\_regular\_file\_open} (in {\tt file.c}) which takes the current context, filename, flags and mode as arguments. 
+Open call can be used to open an existing file or create a new one by passing the {\tt O\_CREAT} flag as per the POSIX semantics.
+For regular files, an underlying {\tt inode} is provided through the FS APIs which you are required to invoke.
+
+
+\noindent While creating a file, the first step is to get an {\tt inode} from the underlying FS (File System) layer by 
+invoking {\tt create\_inode} (implemented in fs.c). 
+The signature of {\tt create\_inode} is as follows,
+
+\vspace{0.25cm}
+\noindent
+{\tt struct inode *create\_inode (char *filename, u64 mode)} 
+\vspace{0.25cm}
+
+\noindent
+where {\tt filename} and {\tt mode} should be same as it is passed to the {\tt do\_regular\_file\_open} function. The mode can take \textbf{O\_READ, O\_WRITE, O\_EXEC} 
+values which corresponds to Read, Writ and  Execute permissions (passed by the user). Permission check is performed on read/write access based on mode value, i.e., 
+write call on a file which is created with O\_READ mode should return an \textbf{EACCES} error.
+
+
+Now let us look at the second scenario of opening an existing file. 
+The first step here is look up the inode corresponding to the filename from the underlying FS layer by invoking {\tt lookup\_inode} (in fs.c). 
+The signature of \textbf{lookup\_inode} is 
+
+\vspace{0.25cm}
+\noindent
+{\tt struct inode* lookup\_inode(char *filename)}. 
+\vspace{0.25cm}
+
+A valid inode is returned on success (NULL on error) and you need to ensure that the access flags mentioned in {\tt open}
+are compatible with the mode in which file was created. After getting the inode from the FS layer, you need to find a free file
+descriptor, allocate a file object (using {\tt alloc\_file} method in {\tt file.c}) and fill-in the fields of 
+corresponding {\em struct file} object which is pointed to by \textbf{files} (in context.h) field of current execution context. 
+Here you need to look for a free position in \textbf{files} array 
+starting from \textbf{index 3}. Index positions \textbf{0, 1, 2} corresponds to \textbf{stdin, stdout, stderr}.
+%
+You need to implement 
+{\tt do\_regular\_read}, {\tt do\_regular\_write} and {\tt std\_close} functions and assign them to read, write and close function 
+pointers of {\tt struct fileops} by accessing {\tt fops} field in the struct file.
+%
+As last step of open call, you need to return the file descriptor which is returned back to the user and used for
+subsequent file operations.
+
+ 
+The implementation of file objects and operations for STDIN, STDOUT and STDERR are 
+already provided to help you with the understanding of the task.
+
+% Standard input/output/error are opened using \textbf{open\_standard\_IO} (in file.c) which takes current execution context and type as arguments. The type value indicates one of the stdin, stdout, stderr categories. The \textbf{struct file} of these categories is pointed to by \textbf{0, 1, 2} indices in  \textbf{files} field of current execution context. If the file is closed then \textbf{create\_standard\_IO} (in file.c) is called to create \textbf{struct file} and assign to index in \textbf{files} field of current execution context based on type. New position in \textbf{files} field of current execution context is looked up if required and index is returned as return value. 
+%\subsubsection*{\underline{regular files}}
+
+
+ 
+% The inode keeps an reference count which needs to be incremented as part of open call. This can be done by invoking \textbf{open(struct inode *)} (in fs.c) call on the inode which is returned. You also need to register read, write, close, lseek file operations with \textbf{do\_read\_regular, do\_write\_regular, std\_close, do\_lseek\_regular} operations.\\
+ 
+
+\subsection{read}
+
+You need to implement the {\tt do\_read\_regular} function (in {\tt file.c}). This function is to be assigned as the read handler 
+in the file object while opening the file. The {\tt inode} provides a read method ({\tt flat\_read}) with the following signature
+
+
+\vspace{0.25cm}
+\noindent
+{\tt int flat\_read(struct inode *, char *buf, int count, int *offset)}. 
+\vspace{0.25cm}
+
+\noindent
+where, {\tt buf} and {\tt count} are the user buffer and count, respectively, 
+passed to {\tt do\_read\_regular} from the read system call handler.
+%
+The above function returns the number of bytes read from the underlying file.
+%
+Read implementation for STDIN, {\tt do\_read\_kbd}, is provided in {\tt file.c} as an illustration.
+
+\subsection{write}
+
+You need to implement the {\tt do\_write\_regular} function (in {\tt file.c}). This function is to be assigned as the write handler 
+in the file object while opening the file. The {\tt inode} provides a write method ({\tt flat\_read}) with the following signature
+
+
+\vspace{0.25cm}
+\noindent
+{\tt int flat\_write(struct inode *, char *buf, int count, int *offset)}. 
+\vspace{0.25cm}
+
+\noindent
+where, {\tt buf} and {\tt count} are the user buffer and count, respectively, 
+passed to {\tt do\_write\_regular} from the read system call handler.
+%
+The above function returns the number of bytes written to the underlying file.
+%
+Write implementation for stdout/stderr, {\tt do\_write\_console}, is provided in {\tt file.c}.
+%\subsubsection*{\underline{regular files}}
+%Here you need to implement \textbf{do\_write\_regular} (in file.c). The arguments to \textbf{do\_write\_regular} are struct file pointer, char buffer and count. The \textbf{inode} provides a write method (flat\_write in fs.c) which takes struct inode pointer, char buffer,  count and offset pointer as arguments. The return value of inode write method is number bytes written in case of success or -1 on failure. You need to keep in mind to adjust file offset based on value returned by inode.\\
+
+%\textbf{do\_write\_regular} function returns number of bytes written to the file. As you can see, this is the function that you registered as write  operation in open call implementation of regular files.\\
+
+%You need to return error codes (in entry.h) based on error conditions like file does not exist etc.\\
+
+\subsubsection*{Notes}
+
+\begin{itemize}
+    \item You are required to modify only {\tt file.c}.
+    \item Sample test case and expected output for this task are in {\tt src/user/test\_cases/testcase1.c}
+        and {\tt src/user/test\_cases/testcase1.output}, respectively.
+    \item Refer to the section detailing the test procedure to know about the limits and assumptions related to
+          this task.
+\end{itemize}
+
+
+\section{Task-2: More file operations (15 Marks)}
+\subsubsection*{List of Syscalls to implement}
+
+\begin{itemize}
+    \item {\tt int dup(int oldfd)}
+    \item {\tt int dup2(int oldfd, int newfd)}
+    \item {\tt long lseek(int fd, long offset, int whence)}
+\end{itemize}
+
+
+\subsection{dup}
+You have to implement {\tt fd\_dup} function (in file.c). It takes current execution context and oldfd as arguments. 
+You need to return error codes (in entry.h) based on the error conditions as explained in the section detailing the error 
+codes.
+
+\subsection{dup2}
+You have to implement {\tt fd\_dup2} function (in file.c). 
+It takes current execution context, oldfd and newfd. Before making newfd as a copy of oldfd, you need to close 
+newfd if it is open.
+
+\subsection{lseek}
+
+You need to implement \textbf{do\_lseek\_regular} (in file.c). It takes pointer to {\tt struct file}, {\tt offset} and {\tt whence} as arguments. 
+You need to implement the functionality for three {\tt whence} options {\tt SEEK\_SET, SEEK\_CUR, SEEK\_END} (in file.h). 
+You need to return error codes (in entry.h) based on the error conditions. Note that, if {\tt lseek} results in taking the file offset
+beyond the file end, you need to return error code $-${\tt EINVAL}.
+
+\subsubsection*{Notes}
+
+\begin{itemize}
+    \item You are required to modify only {\tt file.c}.
+    \item Sample test case and expected output for this task are in {\tt src/user/test\_cases/testcase2.c}
+        and {\tt src/user/test\_cases/testcase2.output}, respectively.
+    \item Refer to the section detailing the test procedure to know about the limits and assumptions related to
+          this task.
+\end{itemize}
+
+\section{Task-3: Pipe it! (15 Marks)}
+
+\subsubsection*{List of Syscalls to implement}
+\begin{itemize}
+    \item {\tt int pipe(int fd[2])}
+\end{itemize}
+
+\subsection{pipe}
+
+You need to implement {\tt create\_pipe}, {\tt pipe\_read} and {\tt pipe\_write}
+functions (in pipe.c). {\tt create\_pipe}, invoked to implement {\tt pipe} system call, 
+takes pointer to current execution context and file descriptor array (of two elements) as arguments. 
+File descriptors for read and write ends of pipe are assigned by looking for available indices 
+in {\tt files} array of the current context.  You can use {\tt alloc\_file} API (in file.c) 
+to allocate a {\tt file} objects and associate it with read and write end of the pipe. 
+Use {\tt alloc\_pipe\_info} (in pipe.c) to get a pointer to a pipe object ({\tt struct pipe\_info}) 
+and attach it with the {\tt pipe} field of the {\tt file} object. Note that, in {\tt struct pipe\_info},
+{\tt pipe\_buf} can be used to implement data write and read.
+%
+You should fill-in the fields of {\tt struct pipe\_info} in {\tt alloc\_pipe\_info} function. You need to implement 
+{\tt pipe\_read} and {\tt pipe\_write} functions and assign them to read and write function 
+pointers of {\tt struct fileops} by accessing {\tt fops} field in struct file.
+     
+\subsubsection*{Notes}
+
+\begin{itemize}
+    \item You are required to modify only {\tt pipe.c}.
+    \item Sample test case and expected output for this task are in {\tt src/user/test\_cases/testcase3.c}
+        and {\tt src/user/test\_cases/testcase3.output}, respectively.
+    \item Refer to the section detailing the test procedure to know about the limits and assumptions related to
+          this task.
+\end{itemize}
+
+\section{Task-4: Handling {\tt close()}, {\tt fork()} and {\tt exit()}} (10 Marks)
+
+\subsubsection*{List of functionalities to implement}
+\begin{itemize}
+    \item System call {\tt int close(fd)}
+    \item Handler for process exit {\tt void do\_file\_exit(struct exec\_context *ctx} in {\tt file.c}    
+    \item Handler for process creation through fork {\tt void do\_file\_fork(struct exec\_context *child} in {\tt file.c}    
+\end{itemize}
+
+
+\subsection*{Details on Implementation}
+%
+You have to implement {\tt generic\_close} (in file.c) as part of this task.  Note that,
+the generic close implements closing regular files and pipes.
+You need to ensure that the reference count in the file object associated with the fd 
+is maintained correctly. When the last reference to the file object is dropped, you need to invoke
+{\tt free\_file\_object(stuct file *)} and {\tt free\_pipe\_object(struct pipe\_info *)} as 
+applicable.
+%
+As a program may exit without closing the files, you need to perform file close on
+{\tt exit} system call by appropriately implementing {\tt do\_file\_exit}.
+%
+When a child process is created using {\tt fork}, the file objects are shared, as the FDs in files
+are already copied while creating the child process. You are required to adjust the
+reference counts as applicable (in {\tt  do\_file\_fork}).
+%decremented and memory allocated to struct file is released if there are no more fds associated with struct file.\\
+%Memory is released by calling \textbf{os\_page\_free} (in memory.h) which takes a memory region and address as arguments. You can pass \textbf{OS\_DS\_REG} as value for memory region argument since struct file is allocated from \textbf{OS\_DS\_REG}.\\
+ %You also need to decrement number of open files statistics, this is done by decrementing \textbf{file\_objects} field of \textbf{struct os\_stats}. You can make use of \textbf{stats} variable which is declared as struct os\_stats* in main.c.
+
+\subsubsection*{Notes}
+
+\begin{itemize}
+    \item You are required to modify only {\tt file.c}.
+    \item Sample test case and expected output for this task are in {\tt src/user/test\_cases/testcase4.c}
+        and {\tt src/user/test\_cases/testcase4.output}, respectively.
+    \item Refer to the section detailing the test procedure to know about the limits and assumptions related to
+          this task.
+\end{itemize}
+
+\section{Task-5: Putting it all together!(40 Marks)}
+As part of this task, your implementation will be tested for all syscall APIs that you have implemented in Task 1-4. 
+You need to verify that your implementation works in a holistic manner.
+
+\subsubsection*{Notes}
+
+\begin{itemize}
+    \item You may be required to modify {\tt file.c} and {\tt pipe.c} if your first-cut logic is incorrect.
+          If you have got everything correct, Bravo! 
+    \item Sample test case and expected output for this task are in {\tt src/user/test\_cases/testcase5.c}
+        and {\tt src/user/test\_cases/testcase5.output}, respectively.
+    \item Refer to the section detailing the test procedure to know about the limits and assumptions related to
+          this task.
+\end{itemize}
+
+\section*{Error codes}
+ You should only use following error codes to mention error conditions. All these error codes should be negated before returning (Example: EINVAL should be returned as -EINVAL).
+    
+    \begin{itemize}
+        \item \textbf{EINVAL}(Invalid Argument)  It should be used in-case of invalid argument such as filename does not exist, invalid file descriptor, accessing closed file or pipe.
+        \item \textbf{EACCES}(Invalid Access) It should be used in-case of invalid access such as writing to read-only file or pipe etc 
+        \item \textbf{ENOMEM}(No Memory) It should be used if memory allocation function used to allocate file, pipe\_info fails.
+        \item \textbf{EOTHERS}(Others) In case of any other errors which is not specified above use EOTHERS.
+    \end{itemize}{}
+
+\section*{Test Procedure}
+We have provided you with five test cases(test\_cases folder) to test Tasks 1-5. Apart from Task-5, We will be testing each Task individually and won't be mixing it up with other Tasks. We will be following below assumptions when we are testing your code. So lets go thorough all the assumptions
+    \begin{itemize}
+        \item There will be at-most four process that will be running at any point of time. No need to fork more than 4 process.
+        \item There can be at-most 16 files of each 4KB size at any point of time.
+        \item There can be at-most 16 file descriptor which can be created using dup or dup2 system calls.
+        \item The max length of pipe buffer will be 4KB. We wont read or write more than 4KB into the pipe.
+        \item We will be testing the error conditions using standard error codes which is specified above. Don't forget to negate the error code before returning.
+        \item Don't try to create or allocate memory by yourself. Try to use the specified function. In-case of any issues reach out to us.
+        \item Don't modify any other function or file. We will be evaluating the changes in the files (file.c and pipe.c)
+        \item You need not worry about concurrency as all accesses are guaranteed to be performed from a single process.    
+    \end{itemize}{}
+
+\section*{Submission guidelines}
+The assignment is to be done individually. You have to submit only two files(file.c and pipe.c). 
+Put these two files in a directory named as your roll number. Create a zip archive of the directory and upload in canvas.
+{\em Don't modify any other files}. We will not consider any file other than file.c and pipe.c for evaluation. 
+In-case any issues you should reach out to us at the earliest.  All the best!
+
+\end{document}
